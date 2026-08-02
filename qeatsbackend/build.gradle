@@ -1,0 +1,85 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '2.6.7'
+    id 'io.spring.dependency-management' version '1.0.15.RELEASE'
+}
+
+group = 'com.crio'
+version = '0.0.1-SNAPSHOT'
+
+ext {
+    springBootVersion = '2.6.7'
+    modelMapperVersion = '2.2.0'
+    swaggerVersion = '3.0.0'
+    junitVersion = '5.8.2'
+    mockitoVersion = '4.11.0'
+    junitPlatformLauncherVersion = '1.8.2'
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_11
+    targetCompatibility = JavaVersion.VERSION_11
+}
+
+repositories {
+    mavenCentral()
+}
+
+configurations {
+    all {
+        exclude group: 'org.springframework.boot', module: 'spring-boot-starter-logging'
+    }
+}
+
+dependencies {
+    def jacksonVersion = '2.9.8'
+
+    implementation 'org.springframework.boot:spring-boot-starter-data-mongodb'
+    implementation('org.springframework.boot:spring-boot-starter-log4j2') {
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-slf4j-impl'
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-core'
+        exclude group: 'org.apache.logging.log4j', module: 'log4j-jul'
+        exclude group: 'org.slf4j', module: 'jul-to-slf4j'
+    }
+
+    implementation 'org.apache.logging.log4j:log4j-api:2.16.0'
+    implementation 'org.apache.logging.log4j:log4j-core:2.16.0'
+    implementation 'org.apache.logging.log4j:log4j-jul:2.16.0'
+    implementation 'org.slf4j:jul-to-slf4j:1.7.28'
+    implementation 'org.slf4j:slf4j-simple:1.7.28'
+    implementation 'org.slf4j:slf4j-api:1.7.28'
+
+    implementation "com.fasterxml.jackson.core:jackson-core:$jacksonVersion"
+    implementation "com.fasterxml.jackson.core:jackson-annotations:$jacksonVersion"
+    implementation "com.fasterxml.jackson.core:jackson-databind:$jacksonVersion"
+
+    implementation "org.modelmapper:modelmapper:$modelMapperVersion"
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+    implementation 'javax.inject:javax.inject:1'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.data:spring-data-redis:2.0.10.RELEASE'
+    implementation 'com.google.guava:guava:20.0'
+    implementation 'ch.hsr:geohash:1.3.0'
+    implementation 'redis.clients:jedis:2.9.0'
+
+    compileOnly 'org.projectlombok:lombok:1.18.24'
+    runtimeOnly 'org.springframework.boot:spring-boot-devtools'
+    annotationProcessor 'org.projectlombok:lombok:1.18.24'
+    implementation "io.springfox:springfox-swagger2:$swaggerVersion"
+    implementation "io.springfox:springfox-swagger-ui:$swaggerVersion"
+
+    testImplementation 'com.github.kstyrc:embedded-redis:0.6'
+    testImplementation 'org.mockito:mockito-junit-jupiter:4.11.0'
+    testImplementation('org.springframework.boot:spring-boot-starter-test') {
+        exclude group: 'junit', module: 'junit'
+    }
+    testImplementation 'de.flapdoodle.embed:de.flapdoodle.embed.mongo'
+    testImplementation "org.junit.jupiter:junit-jupiter-api:$junitVersion"
+    testRuntimeOnly "org.junit.jupiter:junit-jupiter-engine:$junitVersion"
+    testImplementation "org.junit.platform:junit-platform-launcher:$junitPlatformLauncherVersion"
+    testImplementation "org.junit.jupiter:junit-jupiter-params:$junitVersion"
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

@@ -43,11 +43,18 @@ yarn-debug.log*
 # Java / Gradle
 qeatsbackend/build/
 qeatsbackend/.gradle/
+qeatsbackend/target/
+target/
 **/build/
+.mvn/
 *.class
 *.jar
 *.war
 *.ear
+.classpath
+.project
+.settings/
+.factorypath
 
 # Misc
 *.tmp
