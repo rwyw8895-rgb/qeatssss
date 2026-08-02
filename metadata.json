@@ -1,0 +1,10 @@
+{
+  "name": "QEats Food Delivery",
+  "description": "QEats Food Delivery Web Application connected to QEats Spring Boot REST API",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
