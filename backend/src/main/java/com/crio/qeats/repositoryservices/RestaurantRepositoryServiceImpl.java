@@ -26,7 +26,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.modelmapper.ModelMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Primary;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.stereotype.Service;
 
 
@@ -38,9 +37,6 @@ public class RestaurantRepositoryServiceImpl implements RestaurantRepositoryServ
 
   @Autowired
   private RedisConfiguration redisConfiguration;
-
-  @Autowired
-  private MongoTemplate mongoTemplate;
 
   @Autowired
   private Provider<ModelMapper> modelMapperProvider;

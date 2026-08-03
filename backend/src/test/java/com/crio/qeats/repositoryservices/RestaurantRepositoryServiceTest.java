@@ -37,7 +37,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import redis.embedded.RedisServer;
@@ -54,8 +53,6 @@ public class RestaurantRepositoryServiceTest {
   List<RestaurantEntity> allRestaurants = new ArrayList<>();
   @Autowired
   private RestaurantRepositoryService restaurantRepositoryService;
-  @Autowired
-  private MongoTemplate mongoTemplate;
   @Autowired
   private ObjectMapper objectMapper;
   @Autowired
@@ -82,15 +79,11 @@ public class RestaurantRepositoryServiceTest {
   @BeforeEach
   void setup() throws IOException {
     allRestaurants = listOfRestaurants();
-    for (RestaurantEntity restaurantEntity : allRestaurants) {
-      mongoTemplate.save(restaurantEntity, "restaurants");
-    }
     when(restaurantRepository.findAll()).thenReturn(allRestaurants);
   }
 
   @AfterEach
   void teardown() {
-    mongoTemplate.dropCollection("restaurants");
     redisConfiguration.destroyCache();
   }
 
@@ -111,8 +104,7 @@ public class RestaurantRepositoryServiceTest {
 
 
   @Test
-  void noRestaurantsNearBy(@Autowired MongoTemplate mongoTemplate) {
-    assertNotNull(mongoTemplate);
+  void noRestaurantsNearBy() {
     assertNotNull(restaurantRepositoryService);
 
     List<Restaurant> allRestaurantsCloseBy = restaurantRepositoryService
@@ -123,8 +115,7 @@ public class RestaurantRepositoryServiceTest {
   }
 
   @Test
-  void tooEarlyNoRestaurantIsOpen(@Autowired MongoTemplate mongoTemplate) {
-    assertNotNull(mongoTemplate);
+  void tooEarlyNoRestaurantIsOpen() {
     assertNotNull(restaurantRepositoryService);
 
     List<Restaurant> allRestaurantsCloseBy = restaurantRepositoryService
@@ -135,8 +126,7 @@ public class RestaurantRepositoryServiceTest {
   }
 
   @Test
-  void tooLateNoRestaurantIsOpen(@Autowired MongoTemplate mongoTemplate) {
-    assertNotNull(mongoTemplate);
+  void tooLateNoRestaurantIsOpen() {
     assertNotNull(restaurantRepositoryService);
 
     List<Restaurant> allRestaurantsCloseBy = restaurantRepositoryService

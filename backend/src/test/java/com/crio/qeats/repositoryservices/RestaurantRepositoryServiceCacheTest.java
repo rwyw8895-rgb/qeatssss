@@ -27,7 +27,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.context.ActiveProfiles;
 import redis.clients.jedis.Jedis;
@@ -42,8 +41,6 @@ class RestaurantRepositoryServiceCacheTest {
 
   @Autowired
   private RestaurantRepositoryService restaurantRepositoryService;
-  @Autowired
-  private MongoTemplate mongoTemplate;
   @Autowired
   private RedisConfiguration redisConfiguration;
   @Autowired
@@ -66,8 +63,7 @@ class RestaurantRepositoryServiceCacheTest {
 
 
   @Test
-  void restaurantsCloseByFromWarmCache(@Autowired MongoTemplate mongoTemplate) throws IOException {
-    assertNotNull(mongoTemplate);
+  void restaurantsCloseByFromWarmCache() throws IOException {
     assertNotNull(restaurantRepositoryService);
 
     when(mockRestaurantRepository.findAll()).thenReturn(listOfRestaurants());

@@ -8,12 +8,19 @@ package com.crio.qeats.controller;
 
 import com.crio.qeats.exchanges.GetRestaurantsRequest;
 import com.crio.qeats.exchanges.GetRestaurantsResponse;
+import com.crio.qeats.dto.OrderRequest;
+import com.crio.qeats.models.OrderEntity;
+import com.crio.qeats.repositories.OrderRepository;
 import com.crio.qeats.services.RestaurantService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.LocalTime;
 import java.util.Iterator;
+import java.util.List;
 import javax.validation.Valid;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -41,6 +48,12 @@ public class RestaurantController {
 
   @Autowired
   private RestaurantService restaurantService;
+
+  @Autowired
+  private OrderRepository orderRepository;
+
+  private final ObjectMapper objectMapper = new ObjectMapper();
+
   @GetMapping(RESTAURANTS_API)
   public ResponseEntity<GetRestaurantsResponse> getRestaurants(
       @Valid GetRestaurantsRequest getRestaurantsRequest) {
@@ -63,6 +76,35 @@ public class RestaurantController {
     
     return ResponseEntity.ok().body(getRestaurantsResponse);
     }
+
+  @PostMapping(POST_ORDER_API)
+  public ResponseEntity<OrderEntity> placeOrder(
+      @RequestBody @Valid OrderRequest orderRequest) {
+    if (orderRequest.getItems() == null || orderRequest.getItems().isEmpty()) {
+      return ResponseEntity.badRequest().build();
+    }
+
+    OrderEntity orderEntity = new OrderEntity();
+    orderEntity.setOrderId("ORD-" + (100000 + (int) (Math.random() * 900000)));
+    orderEntity.setRestaurantId(orderRequest.getRestaurantId());
+    orderEntity.setRestaurantName(orderRequest.getRestaurantName());
+    orderEntity.setItems(orderRequest.getItems());
+    orderEntity.setTotalAmount(orderRequest.getTotalAmount());
+    orderEntity.setStatus("PLACED");
+    orderEntity.setCreatedAt(orderRequest.getCreatedAt() != null ? orderRequest.getCreatedAt() : java.time.Instant.now().toString());
+    orderEntity.setDeliveryAddress(orderRequest.getDeliveryAddress());
+    orderEntity.setEtaMinutes(orderRequest.getEtaMinutes() != null ? orderRequest.getEtaMinutes() : 25);
+    orderEntity.setLatitude(orderRequest.getLatitude());
+    orderEntity.setLongitude(orderRequest.getLongitude());
+
+    OrderEntity savedOrder = orderRepository.save(orderEntity);
+    return ResponseEntity.status(HttpStatus.CREATED).body(savedOrder);
+  }
+
+  @GetMapping(GET_ORDERS_API)
+  public ResponseEntity<List<OrderEntity>> getOrders() {
+    return ResponseEntity.ok(orderRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt")));
+  }
 }
 
   // TIP(MODULE_MENUAPI): Model Implementation for getting menu given a restaurantId.

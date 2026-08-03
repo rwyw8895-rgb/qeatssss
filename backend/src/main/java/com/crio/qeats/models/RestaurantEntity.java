@@ -8,15 +8,21 @@ package com.crio.qeats.models;
 
 import java.util.ArrayList;
 import java.util.List;
+import javax.persistence.CollectionTable;
+import javax.persistence.Column;
+import javax.persistence.ElementCollection;
+import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import org.springframework.data.annotation.Id;
-import org.springframework.data.mongodb.core.mapping.Document;
 
-// Java class that maps to Mongo collection.
 @Data
-@Document(collection = "restaurants")
+@Entity
+@Table(name = "restaurants")
 @NoArgsConstructor
 public class RestaurantEntity {
 
@@ -47,6 +53,9 @@ public class RestaurantEntity {
   @NotNull
   private String closesAt;
 
+  @ElementCollection(fetch = FetchType.EAGER)
+  @CollectionTable(name = "restaurant_attributes", joinColumns = @JoinColumn(name = "restaurant_id"))
+  @Column(name = "attribute")
   @NotNull
   private List<String> attributes = new ArrayList<>();
 

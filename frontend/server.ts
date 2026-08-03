@@ -2,14 +2,10 @@ import express, { Request, Response } from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
-import { MongoClient, Collection } from 'mongodb';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || 'http://localhost:8081';
-const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
-const MONGODB_DB = process.env.MONGODB_DB || 'restaurant-database';
-const MONGODB_ORDERS_COLLECTION = 'orders';
 
 app.use(cors());
 app.use(express.json());
@@ -34,8 +30,6 @@ let cartState: {
   items: [],
   total: 0,
 };
-
-let ordersCollection: Collection<any> | null = null;
 
 const initialOrders = [
   {
@@ -560,26 +554,28 @@ app.post('/qeats/v1/order', async (req: Request, res: Response) => {
     return res.status(400).json({ error: 'Order must contain at least one item' });
   }
 
-  if (!ordersCollection) {
-    return res.status(500).json({ error: 'Order storage is not available' });
+  const orderResponse = await fetch(`${SPRING_BOOT_URL}/qeats/v1/order`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      restaurantId,
+      restaurantName,
+      items,
+      totalAmount: totalAmount || cartState.total + 40,
+      deliveryAddress: deliveryAddress || 'HSR Layout, Sector 1, Bengaluru',
+      latitude: latitude || 12.91,
+      longitude: longitude || 77.63,
+      createdAt: new Date().toISOString(),
+      etaMinutes: Math.floor(25 + Math.random() * 15)
+    })
+  });
+
+  if (!orderResponse.ok) {
+    const errorBody = await orderResponse.json().catch(() => ({ error: 'Failed to place order' }));
+    return res.status(orderResponse.status).json(errorBody);
   }
 
-  const newOrder = {
-    orderId: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
-    restaurantId: restaurantId || '10',
-    restaurantName: restaurantName || 'QEats Restaurant',
-    items,
-    totalAmount: totalAmount || cartState.total + 40,
-    status: 'PLACED' as const,
-    createdAt: new Date().toISOString(),
-    deliveryAddress: deliveryAddress || 'HSR Layout, Sector 1, Bengaluru',
-    etaMinutes: Math.floor(25 + Math.random() * 15),
-    latitude: latitude || 12.91,
-    longitude: longitude || 77.63
-  };
-
-  const result = await ordersCollection.insertOne(newOrder);
-  const savedOrder = { ...newOrder, _id: result.insertedId };
+  const savedOrder = await orderResponse.json();
 
   // Clear cart after placing order
   cartState = {
@@ -596,31 +592,17 @@ app.post('/qeats/v1/order', async (req: Request, res: Response) => {
 });
 
 app.get('/qeats/v1/orders', async (req: Request, res: Response) => {
-  if (!ordersCollection) {
-    return res.status(500).json({ error: 'Order storage is not available' });
+  const orderResponse = await fetch(`${SPRING_BOOT_URL}/qeats/v1/orders`);
+  if (!orderResponse.ok) {
+    const errorBody = await orderResponse.json().catch(() => ({ error: 'Failed to fetch orders' }));
+    return res.status(orderResponse.status).json(errorBody);
   }
 
-  const orders = await ordersCollection.find().sort({ createdAt: -1 }).toArray();
-  res.json({ orders });
+  const payload = await orderResponse.json();
+  res.json(payload);
 });
 
-async function initMongo() {
-  const mongoClient = new MongoClient(MONGODB_URI);
-  await mongoClient.connect();
-  const db = mongoClient.db(MONGODB_DB);
-  ordersCollection = db.collection(MONGODB_ORDERS_COLLECTION);
-
-  const count = await ordersCollection.countDocuments();
-  if (count === 0) {
-    await ordersCollection.insertMany(initialOrders);
-    console.log(`📦 Inserted ${initialOrders.length} initial order(s) into MongoDB`);
-  }
-}
-
 async function startServer() {
-  await initMongo();
-
-  // Serve Vite App or Static Build
   if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
