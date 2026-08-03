@@ -1,20 +1,20 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import path from 'path';
-import { fileURLToPath } from 'url';
 import fs from 'fs';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+import { MongoClient, Collection } from 'mongodb';
 
 const app = express();
 const PORT = Number(process.env.PORT) || 3000;
 const SPRING_BOOT_URL = process.env.SPRING_BOOT_URL || 'http://localhost:8081';
+const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017';
+const MONGODB_DB = process.env.MONGODB_DB || 'restaurant-database';
+const MONGODB_ORDERS_COLLECTION = 'orders';
 
 app.use(cors());
 app.use(express.json());
 
-// In-memory Database for Cart & Orders
+// In-memory Database for Cart
 let cartState: {
   cartId: string;
   restaurantId: string | null;
@@ -35,19 +35,9 @@ let cartState: {
   total: 0,
 };
 
-let ordersState: Array<{
-  orderId: string;
-  restaurantId: string;
-  restaurantName: string;
-  items: Array<any>;
-  totalAmount: number;
-  status: 'PLACED' | 'PREPARING' | 'OUT_FOR_DELIVERY' | 'DELIVERED';
-  createdAt: string;
-  deliveryAddress: string;
-  etaMinutes: number;
-  latitude: number;
-  longitude: number;
-}> = [
+let ordersCollection: Collection<any> | null = null;
+
+const initialOrders = [
   {
     orderId: 'ORD-98421',
     restaurantId: '11',
@@ -563,18 +553,22 @@ app.delete('/qeats/v1/cart/clear', (req: Request, res: Response) => {
 });
 
 // ORDER API ENDPOINTS
-app.post('/qeats/v1/order', (req: Request, res: Response) => {
+app.post('/qeats/v1/order', async (req: Request, res: Response) => {
   const { restaurantId, restaurantName, items, totalAmount, deliveryAddress, latitude, longitude } = req.body;
 
   if (!items || items.length === 0) {
     return res.status(400).json({ error: 'Order must contain at least one item' });
   }
 
+  if (!ordersCollection) {
+    return res.status(500).json({ error: 'Order storage is not available' });
+  }
+
   const newOrder = {
     orderId: `ORD-${Math.floor(100000 + Math.random() * 900000)}`,
     restaurantId: restaurantId || '10',
     restaurantName: restaurantName || 'QEats Restaurant',
-    items: items,
+    items,
     totalAmount: totalAmount || cartState.total + 40,
     status: 'PLACED' as const,
     createdAt: new Date().toISOString(),
@@ -584,7 +578,8 @@ app.post('/qeats/v1/order', (req: Request, res: Response) => {
     longitude: longitude || 77.63
   };
 
-  ordersState.unshift(newOrder);
+  const result = await ordersCollection.insertOne(newOrder);
+  const savedOrder = { ...newOrder, _id: result.insertedId };
 
   // Clear cart after placing order
   cartState = {
@@ -596,15 +591,35 @@ app.post('/qeats/v1/order', (req: Request, res: Response) => {
 
   res.status(201).json({
     message: 'Order placed successfully',
-    order: newOrder
+    order: savedOrder
   });
 });
 
-app.get('/qeats/v1/orders', (req: Request, res: Response) => {
-  res.json({ orders: ordersState });
+app.get('/qeats/v1/orders', async (req: Request, res: Response) => {
+  if (!ordersCollection) {
+    return res.status(500).json({ error: 'Order storage is not available' });
+  }
+
+  const orders = await ordersCollection.find().sort({ createdAt: -1 }).toArray();
+  res.json({ orders });
 });
 
+async function initMongo() {
+  const mongoClient = new MongoClient(MONGODB_URI);
+  await mongoClient.connect();
+  const db = mongoClient.db(MONGODB_DB);
+  ordersCollection = db.collection(MONGODB_ORDERS_COLLECTION);
+
+  const count = await ordersCollection.countDocuments();
+  if (count === 0) {
+    await ordersCollection.insertMany(initialOrders);
+    console.log(`📦 Inserted ${initialOrders.length} initial order(s) into MongoDB`);
+  }
+}
+
 async function startServer() {
+  await initMongo();
+
   // Serve Vite App or Static Build
   if (process.env.NODE_ENV === 'production') {
     const distPath = path.join(process.cwd(), 'dist');

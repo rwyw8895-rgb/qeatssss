@@ -1,0 +1,58 @@
+version: '3.9'
+
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: qeats-mongo
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo-data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand({ping:1})"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - qeats-net
+
+  backend:
+    build:
+      context: .
+      dockerfile: qeatsbackend/Dockerfile
+    container_name: qeats-backend
+    ports:
+      - '8081:8081'
+    depends_on:
+      mongo:
+        condition: service_started
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://mongo:27017/restaurant-database?authSource=admin
+      SPRING_REDIS_PORT: 6379
+    networks:
+      - qeats-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: qeats-frontend
+    ports:
+      - '3000:3000'
+    depends_on:
+      - backend
+      - mongo
+    environment:
+      SPRING_BOOT_URL: http://backend:8081
+      MONGODB_URI: mongodb://mongo:27017
+      MONGODB_DB: restaurant-database
+      PORT: 3000
+    networks:
+      - qeats-net
+
+volumes:
+  mongo-data:
+
+networks:
+  qeats-net:
+    driver: bridge
